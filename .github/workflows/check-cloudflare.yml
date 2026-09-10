@@ -1,0 +1,21 @@
+name: Check Cloudflare mirror
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 2 * * *'
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify homepage and assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://salmonbooksite.pages.dev'
+          html="$(curl --fail --silent --show-error --location --retry 3 --connect-timeout 15 "$base/")"
+          grep -q '<div id="root"></div>' <<< "$html"
+          js="$(grep -oE 'src="[^"]+\.js"' <<< "$html" | head -1 | cut -d'"' -f2)"
+          css="$(grep -oE 'href="[^"]+\.css"' <<< "$html" | head -1 | cut -d'"' -f2)"
+          curl --fail --silent --show-error --location --retry 3 --connect-timeout 15 -o /dev/null "$base$js"
+          curl --fail --silent --show-error --location --retry 3 --connect-timeout 15 -o /dev/null "$base$css"
+          echo "Cloudflare mirror and essential assets are reachable."
